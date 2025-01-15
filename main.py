@@ -6,6 +6,19 @@ from pydub import AudioSegment
 import simpleaudio as sa
 
 start_program = False
+face_cascPath = "./pretrained/face_detector.xml"
+eye_cascPath = "./pretrained/eye_detector.xml"
+
+face_filter = cv2.CascadeClassifier(face_cascPath)
+eye_filter = cv2.CascadeClassifier(eye_cascPath)
+if face_filter.empty() or eye_filter.empty():
+    raise IOError("Where is my filter?!?!!")
+
+eyes_are_open = False
+eyes_closed_warning = False
+start_time = time.time()
+prev_time = 0
+fps = 0
 
 # Function to update the main video feed
 def update_video():
@@ -19,18 +32,60 @@ def update_video():
         video_canvas.image = frame_img
     else:
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Restart video when it ends
-    root.after(10, update_video)
+    root.after(5, update_video)
 
 # Function to update the live camera feed
 def update_camera():
     ret, frame = camera.read()
+    current_time = time.time()
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (small_canvas_width-4, small_canvas_height-4))
+
+        global prev_time
+        fps = 1 / (current_time - prev_time)  # Inverse of time difference
+        prev_time = current_time
+
+        # Show FPS on the video feed
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        frame = cv2.flip(frame, 1)
+
+
+        # Translate original frame to gray scale
+        global face_filter
+        # global eye_filter
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # Detect faces in the image
+        face_rects = face_filter.detectMultiScale(gray_frame, 1.3, 5)
+
+        # Detect eyes, removes eyes that are not "on" the face
+        eye_rects = eye_filter.detectMultiScale(gray_frame, 1.3, 5)
+        filtered_eyes = []
+
+        for (x_face, y_face, w_face, h_face) in face_rects:
+            for (x_eye, y_eye, w_eye, h_eye) in eye_rects:
+                if x_eye > x_face and (x_eye + w_eye) < (x_face + w_face) and \
+                        y_eye > y_face and (y_eye + h_eye) < (y_face + h_face):
+                    filtered_eyes.append((x_eye, y_eye, w_eye, h_eye))
+
+        eye_rects = filtered_eyes
+
+        # Draw faces and (valid) eyes rectangles
+        for (x_face, y_face, w_face, h_face) in face_rects:
+            cv2.rectangle(frame, (x_face, y_face), (x_face + w_face, y_face + h_face), (0, 255, 255), 3)
+
+        for (x_eye, y_eye, w_eye, h_eye) in eye_rects:
+            cv2.rectangle(frame, (x_eye, y_eye), (x_eye + w_eye, y_eye + h_eye), (0, 255, 0), 3)
+
+        if len(eye_rects) == 0:
+            global eyes_are_open
+            cv2.putText(frame, "EYES ARE CLOSED!!!", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                        (0, 0, 255), 2)
+        cv2.putText(frame, f'FPS: {int(fps)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         small_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         small_canvas.image = frame_img
-    root.after(10, update_camera)
+    root.after(100, update_camera)
 
 # Function to update the small canvas size and position
 def update_small_canvas(event):
@@ -110,49 +165,10 @@ cv2.destroyAllWindows()
 # cap = cv2.VideoCapture(video_path)
 # # cap = cv2.VideoCapture(0)
 #
-# face_cascPath = "pretrained/face_detector.xml"
-# eye_cascPath = "pretrained/eye_detector.xml"
-#
-# face_filter = cv2.CascadeClassifier(face_cascPath)
-# eye_filter = cv2.CascadeClassifier(eye_cascPath)
-# if face_filter.empty() or eye_filter.empty():
-#     raise IOError("Where is my filter?!?!!")
-#
-# eyes_are_open = False
-# eyes_closed_warning = False
-# start_time = time.time()
 #
 # while True:
-#     eyesOpen = False
 #     _, frame = cap.read()
 #
-#     # Translate original frame to gray scale
-#     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-#     # Detect faces in the image
-#     face_rects = face_filter.detectMultiScale(gray_frame, 1.3, 5)
-#
-#     # Detect eyes, removes eyes that are not "on" the face
-#     eye_rects = eye_filter.detectMultiScale(gray_frame, 1.3, 5)
-#     filtered_eyes = []
-#
-#     for (x_face, y_face, w_face, h_face) in face_rects:
-#         for (x_eye, y_eye, w_eye, h_eye) in eye_rects:
-#             if x_eye > x_face and (x_eye + w_eye) < (x_face + w_face) and \
-#                     y_eye > y_face and (y_eye + h_eye) < (y_face + h_face):
-#                 filtered_eyes.append((x_eye, y_eye, w_eye, h_eye))
-#
-#     eye_rects = filtered_eyes
-#
-#     # Draw faces and (valid) eyes rectangles
-#     for (x_face, y_face, w_face, h_face) in face_rects:
-#         cv2.rectangle(frame, (x_face, y_face), (x_face + w_face, y_face + h_face), (0, 255, 255), 3)
-#
-#     for (x_eye, y_eye, w_eye, h_eye) in eye_rects:
-#         cv2.rectangle(frame, (x_eye, y_eye), (x_eye + w_eye, y_eye + h_eye), (0, 255, 0), 3)
-#
-#     if len(eye_rects) == 0:
-#         cv2.putText(frame, "EYES ARE CLOSED!!!", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
-#                     (0,0,255),2)
 #
 #     cv2.imshow("Detection stream ", frame)
 #     time.sleep(0.03)
