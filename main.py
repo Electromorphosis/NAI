@@ -4,10 +4,12 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from pydub import AudioSegment
 import simpleaudio as sa
+from threading import Thread
 
 start_program = False
 face_cascPath = "./pretrained/face_detector.xml"
 eye_cascPath = "./pretrained/eye_detector.xml"
+font = cv2.FONT_HERSHEY_SIMPLEX
 
 face_filter = cv2.CascadeClassifier(face_cascPath)
 eye_filter = cv2.CascadeClassifier(eye_cascPath)
@@ -19,17 +21,75 @@ eyes_closed_warning = False
 start_time = time.time()
 prev_time = 0
 fps = 0
+current_frame = 0
+warn_frame = 0
+stop_frame = -1
+previous_frame = None
+
+
+def audio(filepath):
+    # Load the audio file once
+    audio = AudioSegment.from_file(filepath)
+    play_obj = None  # Keep track of the current playback object
+
+    while True:
+        if eyes_closed_warning:
+            # Stop playback if it's currently playing
+            if play_obj and play_obj.is_playing():
+                play_obj.stop()
+        else:
+            # Start playback if not already playing
+            if not play_obj or not play_obj.is_playing():
+                play_obj = sa.play_buffer(
+                    audio.raw_data,
+                    num_channels=audio.channels,
+                    bytes_per_sample=audio.sample_width,
+                    sample_rate=audio.frame_rate
+                )
+        time.sleep(0.1)  # Small delay to avoid busy-waiting
+
 
 # Function to update the main video feed
 def update_video():
 
-    ret, frame = cap.read()
+
+    global eyes_closed_warning
+    global previous_frame
+    global current_frame
+    if not eyes_closed_warning:
+        current_frame += 1
+        ret, frame = cap.read()
+    else:
+        ret = 0
+        frame = previous_frame
+
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (screen_width, screen_height))
+        global start_program
+        if start_program:
+            if eyes_closed_warning:
+                frame = previous_frame
+            else:
+                previous_frame = frame
+
+            cv2.putText(frame, f'Current frame: {int(current_frame)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+            global eyes_are_open
+
+            global warn_frame
+            cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
+            if eyes_closed_warning:
+                cv2.putText(frame, "EYES ARE CLOSED!!!", (350, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
+                            (255, 0, 0), 3)
+            print("Eyes warn frame = " + str(warn_frame))
+        # Render final frame
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         video_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         video_canvas.image = frame_img
+
     else:
         cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Restart video when it ends
     root.after(5, update_video)
@@ -40,14 +100,14 @@ def update_camera():
     current_time = time.time()
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = cv2.resize(frame, (small_canvas_width-4, small_canvas_height-4))
+
 
         global prev_time
         fps = 1 / (current_time - prev_time)  # Inverse of time difference
         prev_time = current_time
 
         # Show FPS on the video feed
-        font = cv2.FONT_HERSHEY_SIMPLEX
+        global font
         frame = cv2.flip(frame, 1)
 
 
@@ -77,11 +137,30 @@ def update_camera():
         for (x_eye, y_eye, w_eye, h_eye) in eye_rects:
             cv2.rectangle(frame, (x_eye, y_eye), (x_eye + w_eye, y_eye + h_eye), (0, 255, 0), 3)
 
+        global eyes_are_open
+        global warn_frame
+        global eyes_closed_warning
         if len(eye_rects) == 0:
-            global eyes_are_open
-            cv2.putText(frame, "EYES ARE CLOSED!!!", (150, 50), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                        (0, 0, 255), 2)
+            eyes_are_open = False
+            warn_frame += 1
+            print("Eyes are now closed!")
+            if warn_frame > 5:
+                warn_frame = 5
+            if not eyes_closed_warning:
+                if warn_frame == 5:
+                    eyes_closed_warning = True
+        else:
+            eyes_are_open = True
+            warn_frame -= 1
+            print("Eyes are now open!")
+            if warn_frame < 0:
+                warn_frame = 0
+            if eyes_closed_warning:
+                if warn_frame == 0:
+                    eyes_closed_warning = False
+
         cv2.putText(frame, f'FPS: {int(fps)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+        frame = cv2.resize(frame, (small_canvas_width - 4, small_canvas_height - 4))
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         small_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         small_canvas.image = frame_img
@@ -126,6 +205,8 @@ root.bind("<Configure>", update_small_canvas)
 # Open video file and camera
 cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
 camera = cv2.VideoCapture(0)  # 0 = default webcam
+# video_path = "downloads/mieciu.mp4"
+# camera = cv2.VideoCapture(video_path)
 
 # Start the update loops
 update_video()
@@ -141,10 +222,12 @@ def keyboard_controls(event):
         if start_program is False:
             start_program = True
             global cap
+            global current_frame
+            current_frame = 0
             cap = cv2.VideoCapture('./educational_materials/1.mp4')
-            audio = AudioSegment.from_file('./educational_materials/1.mp4')
-            play_obj = sa.play_buffer(audio.raw_data, num_channels=audio.channels, bytes_per_sample=audio.sample_width,
-                                      sample_rate=audio.frame_rate)
+            # Start the audio thread
+            audio_thread = Thread(target=audio, args=('./educational_materials/1.mp4',), daemon=True)
+            audio_thread.start()
 
 
 
