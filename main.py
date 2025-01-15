@@ -2,6 +2,8 @@ import cv2
 import time
 import tkinter as tk
 from PIL import Image, ImageTk
+from pydub import AudioSegment
+import simpleaudio as sa
 
 start_program = False
 
@@ -76,22 +78,22 @@ update_camera()
 
 
 # Exit application with 'q' key
-def exit_app(event):
+def keyboard_controls(event):
     if event.char == "q":
         root.destroy()
-
-def start_program(event):
-    global start_program
-    if event.char == "space":
-        if start_program is True:
-            return
-        else:
+    if event.keysym == "space":
+        global start_program
+        if start_program is False:
             start_program = True
             global cap
-            cap = cv2.VideoCapture('./downloads/hamsters1.mp4')
+            cap = cv2.VideoCapture('./educational_materials/1.mp4')
+            audio = AudioSegment.from_file('./educational_materials/1.mp4')
+            play_obj = sa.play_buffer(audio.raw_data, num_channels=audio.channels, bytes_per_sample=audio.sample_width,
+                                      sample_rate=audio.frame_rate)
 
-root.bind("<Key>", exit_app)
-root.bind("<Key>", start_program)
+
+
+root.bind("<Key>", keyboard_controls)
 
 
 # Run the tkinter main loop
