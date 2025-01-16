@@ -61,7 +61,7 @@ def choose_file_from_directory(directory_path):
 
 
 # Example usage
-downloads_folder = os.path.expanduser(".\downloads")  # Path to Downloads folder
+downloads_folder = os.path.expanduser("../downloads")  # Path to Downloads folder
 chosen_file = choose_file_from_directory(downloads_folder)
 if chosen_file:
     print(f"Chosen file path: {chosen_file}")
