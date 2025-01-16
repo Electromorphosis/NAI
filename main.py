@@ -46,6 +46,31 @@ def audio(filepath):
 
         time.sleep(0.1)  # Small delay to avoid busy-waiting
 
+def alarm_sound():
+    global eyes_closed_warning
+    global start_program
+
+    while True:
+        wave_obj = sa.WaveObject.from_wave_file('./educational_materials/alarm_improved.wav')
+        is_playing = False
+        play_obj = wave_obj.play()
+        play_obj.pause()
+        while play_obj.is_playing():
+            if eyes_closed_warning:
+                if not is_playing:
+                    # print("Paused!")
+                    play_obj.resume()
+                    is_playing = True
+            else:
+                    # print("Resumed!")
+                    play_obj.pause()
+                    is_playing = False
+
+            time.sleep(0.1)  # Small delay to avoid busy-waiting
+
+
+alarm_thread = Thread(target=alarm_sound, daemon=True)
+
 
 # Function to update the main video feed
 def update_video():
@@ -55,6 +80,7 @@ def update_video():
     global start_program
     global warn_frame
     global warn_sign_on
+    global alarm_thread
 
     if eyes_closed_warning:
         cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
@@ -74,11 +100,13 @@ def update_video():
 
             cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
             if eyes_closed_warning:
+                if not alarm_thread.is_alive():
+                    alarm_thread.start()
                 if warn_sign_on:
                     warn_sign_on = False
                 else:
                     cv2.putText(frame, "EYES ARE CLOSED!!!", (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 5,
-                                (255, 0, 0), 8)
+                                (255, 0, 0), 10)
                     warn_sign_on = True
 
             cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
