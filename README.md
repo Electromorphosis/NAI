@@ -2,26 +2,36 @@
 
 ## Problem Wykrywanie wzroku w celu zwiększania zaangażowania w treści reklamowe
 
-Autor: Paweł Mechliński
+Author: Paweł Mechliński
 
-Instrukcja użycia:
-- Zainstaluj zależności (uwaga, zamiast simpleaudio należy zainstalować complexaudio! Nazwa w imporcie pozostaje ta sama)
+### Instructions for Use:
+- Install dependencies (note, instead of simpleaudio, you should install complexaudio! The import name remains the same).
+- run main.py
+- press 'space' to start the 'game'.
 
-Referencje:
-- przetrenowane modele:
-  - detekcja wzroku: Shameem Hameed (http://umich.edu/~shameem).
-  - detekcja twarzy: Rainer Lienhart.
-  - Licencje znajdują się w plikach xml.
-- dźwięk alarmu: https://www.youtube.com/@mysound1805
-- ekran tytułowy wygenerowany za pomocą strony quozio.com
-- użyte materiały reklamowe zostały ściągnięte z YouTube, prawa do nich (prawdopodobnie) posiada MediaMarkt.
+### Problem Description
+The code above solves the problem of monitoring user attention, particularly in the context of tracking eye openness while watching video content. This issue is important in scenarios such as:
 
-### Opis Problemu
+- Preventing loss of attention or falling asleep while watching educational materials or online training – the code helps identify if the user stops actively observing the screen (e.g., by closing their eyes), and in such cases, an alert is generated.
+- Safety support in situations requiring alertness – it could be used in contexts where monitoring the attention of an operator is necessary, such as in autonomous vehicles or during work in hazardous environments.
+- Helping with attention and concentration training – this tool can be used in training programs where users are learning to maintain focus on tasks for a certain period of time.
 
-Powyższy kod rozwiązuje problem monitorowania uwagi użytkownika, szczególnie w kontekście śledzenia otwarcia oczu podczas oglądania materiałów wideo. Problem ten jest istotny w scenariuszach takich jak:
+This code is applicable in security systems, education, as well as therapeutic or training applications (and others) that require tracking user attention.
 
-- **Zapobieganie utracie uwagi** lub zaśnięciu podczas oglądania materiałów edukacyjnych lub szkoleń online – kod pomaga w identyfikacji, czy użytkownik przestaje aktywnie obserwować ekran (np. zamyka oczy), i w takim przypadku generuje ostrzeżenie.
-- Wsparcie bezpieczeństwa w sytuacjach wymagających czujności – może być użyte w kontekstach, gdzie konieczne jest monitorowanie uwagi operatora, np. w pojazdach autonomicznych lub podczas pracy w niebezpiecznych środowiskach.
-- Pomoc w treningu uwagi i koncentracji – narzędzie to może być wykorzystane w programach szkoleniowych, gdzie użytkownicy uczą się utrzymywać uwagę na zadaniach przez określony czas.
+### References:
+- Pretrained models:
+  - Eye detection: Shameem Hameed (http://umich.edu/~shameem).
+  - Face detection: Rainer Lienhart.
+  - Licenses are located in the XML files.
+- Alarm sound: https://www.youtube.com/@mysound1805
+- Title screen generated using the quozio.com website.
+- Used advertising materials were downloaded from YouTube, and the rights to them are (likely) held by MediaMarkt.
 
-Kod ten znajduje zastosowanie w systemach bezpieczeństwa, edukacji, a także w aplikacjach terapeutycznych czy szkoleniowych (i innych), które wymagają śledzenia uwagi użytkownika.
+-------------------
+### Future Ideas:
+
+- Better isolation of logical and presentation layers:
+  - Limit the update function to actual display tasks.
+  - Improve state management and calculations.
+- Improve audio synchronization with video, so it works flawlessly instead of just relatively well.
+- Consider using a different tool for video playback instead of OpenCV.
