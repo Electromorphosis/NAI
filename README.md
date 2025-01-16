@@ -1,6 +1,6 @@
 # NAI 6
 
-## Problem Wykrywanie wzroku w celu zwiększania zaangażowania w treści reklamowe
+## Identifying user eye gaze for improved engagement in advertisements
 
 Author: Paweł Mechliński
 
