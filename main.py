@@ -25,7 +25,7 @@ current_frame = 0
 warn_frame = 0
 stop_frame = -1
 previous_frame = None
-
+warn_sign_on = False
 
 def audio(filepath):
     # Load the audio file once
@@ -52,32 +52,38 @@ def update_video():
     global eyes_closed_warning
     global previous_frame
     global current_frame
-    if not eyes_closed_warning:
-        current_frame += 1
-        ret, frame = cap.read()
-    else:
-        ret = 0
-        frame = previous_frame
+    global start_program
+    global warn_frame
+    global warn_sign_on
+
+    if eyes_closed_warning:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+
+    ret, frame = cap.read()
 
     if ret:
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame = cv2.resize(frame, (screen_width, screen_height))
-        global start_program
+
         if start_program:
-            if eyes_closed_warning:
-                frame = previous_frame
-            else:
-                previous_frame = frame
+            if not eyes_closed_warning:
+                current_frame += 1
 
             cv2.putText(frame, f'Current frame: {int(current_frame)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-            global warn_frame
+
             cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            if eyes_closed_warning:
+                if warn_sign_on:
+                    warn_sign_on = False
+                else:
+                    cv2.putText(frame, "EYES ARE CLOSED!!!", (50, 300), cv2.FONT_HERSHEY_SIMPLEX, 5,
+                                (255, 0, 0), 8)
+                    warn_sign_on = True
+
             cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-            if eyes_closed_warning:
-                cv2.putText(frame, "EYES ARE CLOSED!!!", (350, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
-                            (255, 0, 0), 3)
+
             # print("Eyes warn frame = " + str(warn_frame))
         # Render final frame
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
@@ -158,7 +164,7 @@ def update_camera():
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         small_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         small_canvas.image = frame_img
-    root.after(20, update_camera)
+    root.after(100, update_camera)
 
 # Function to update the small canvas size and position
 def update_small_canvas(event):
@@ -198,8 +204,8 @@ root.bind("<Configure>", update_small_canvas)
 
 # Open video file and camera
 cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
-# camera = cv2.VideoCapture(0)  # 0 = default webcam
-camera = cv2.VideoCapture("downloads/mieciu.mp4")
+camera = cv2.VideoCapture(0)  # 0 = default webcam
+# camera = cv2.VideoCapture("downloads/mieciu.mp4")
 
 # Start the update loops
 update_video()
