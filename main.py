@@ -2,7 +2,6 @@ import cv2
 import time
 import tkinter as tk
 from PIL import Image, ImageTk
-from pydub import AudioSegment
 import simpleaudio as sa
 from threading import Thread
 
@@ -26,6 +25,13 @@ warn_frame = 0
 stop_frame = -1
 previous_frame = None
 warn_sign_on = False
+social_credit_score = 0
+early_ret_false_positive_buffer = True
+video_number = 2
+
+# Open video file and camera
+cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
+camera = cv2.VideoCapture(0)  # 0 = default webcam
 
 def audio(filepath):
     # Load the audio file once
@@ -33,7 +39,7 @@ def audio(filepath):
     play_obj = wave_obj.play()
     is_playing = True
     global eyes_closed_warning
-    while True:
+    while play_obj.is_playing():
         if eyes_closed_warning:
             # print("Paused!")
             play_obj.pause()
@@ -81,6 +87,10 @@ def update_video():
     global warn_frame
     global warn_sign_on
     global alarm_thread
+    global social_credit_score
+    global early_ret_false_positive_buffer
+    global video_number
+    global cap
 
     if eyes_closed_warning:
         cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
@@ -95,10 +105,16 @@ def update_video():
             if not eyes_closed_warning:
                 current_frame += 1
 
-            cv2.putText(frame, f'Current frame: {int(current_frame)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
-
-
-            cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+            if current_frame > 50:
+                early_ret_false_positive_buffer = False
+            cv2.putText(frame, f'Current frame: {int(current_frame)}', (10, 30), font, 1,
+                        (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1,
+                        (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1,
+                        (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame, f'Social Credits: {int(social_credit_score)}', (10, 120), font, 1,
+                        (0, 255, 0), 2, cv2.LINE_AA)
             if eyes_closed_warning:
                 if not alarm_thread.is_alive():
                     alarm_thread.start()
@@ -109,7 +125,7 @@ def update_video():
                                 (255, 0, 0), 10)
                     warn_sign_on = True
 
-            cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
+
 
 
             # print("Eyes warn frame = " + str(warn_frame))
@@ -119,7 +135,21 @@ def update_video():
         video_canvas.image = frame_img
 
     else:
-        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Restart video when it ends
+        if not early_ret_false_positive_buffer:
+            print("RET FALSE ; " + str(cap.get(cv2.CAP_PROP_FRAME_COUNT)))
+            # If video is finished (ret is nonzero)
+            social_credit_score += 1
+            early_ret_false_positive_buffer = True
+            current_frame = 0
+            if video_number == 1:
+                video_number = 2
+            else:
+                video_number = 1
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Restart video when it ends
+            cap = cv2.VideoCapture('./educational_materials/' + str(video_number) + '.mp4')
+            audio_thread = Thread(target=audio, args=('./educational_materials/' + str(video_number) + '.wav',), daemon=True)
+            audio_thread.start()
+
     root.after(5, update_video)
 
 # Function to update the live camera feed
@@ -192,7 +222,7 @@ def update_camera():
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         small_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         small_canvas.image = frame_img
-    root.after(100, update_camera)
+    root.after(105, update_camera)
 
 # Function to update the small canvas size and position
 def update_small_canvas(event):
@@ -230,10 +260,6 @@ small_canvas.place(x=screen_width - small_canvas_width, y=screen_height - small_
 # Bind the window resize event to update the smaller canvas
 root.bind("<Configure>", update_small_canvas)
 
-# Open video file and camera
-cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
-camera = cv2.VideoCapture(0)  # 0 = default webcam
-# camera = cv2.VideoCapture("downloads/mieciu.mp4")
 
 # Start the update loops
 update_video()
@@ -242,14 +268,16 @@ update_camera()
 
 # Exit application with 'q' key
 def keyboard_controls(event):
+    global current_frame
     if event.char == "q":
         root.destroy()
+    if event.char == "r":
+        current_frame = 0
     if event.keysym == "space":
         global start_program
         if start_program is False:
             start_program = True
             global cap
-            global current_frame
             current_frame = 0
             cap = cv2.VideoCapture('./educational_materials/2.mp4')
             # Start the audio thread
