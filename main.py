@@ -29,23 +29,21 @@ previous_frame = None
 
 def audio(filepath):
     # Load the audio file once
-    audio = AudioSegment.from_file(filepath)
-    play_obj = None  # Keep track of the current playback object
-
+    wave_obj = sa.WaveObject.from_wave_file(filepath)
+    play_obj = wave_obj.play()
+    is_playing = True
+    global eyes_closed_warning
     while True:
         if eyes_closed_warning:
-            # Stop playback if it's currently playing
-            if play_obj and play_obj.is_playing():
-                play_obj.stop()
+            print("Paused!")
+            play_obj.pause()
+            is_playing = False
         else:
-            # Start playback if not already playing
-            if not play_obj or not play_obj.is_playing():
-                play_obj = sa.play_buffer(
-                    audio.raw_data,
-                    num_channels=audio.channels,
-                    bytes_per_sample=audio.sample_width,
-                    sample_rate=audio.frame_rate
-                )
+            if not is_playing:
+                print("Resumed!")
+                play_obj.resume()
+                is_playing = True
+
         time.sleep(0.1)  # Small delay to avoid busy-waiting
 
 
@@ -143,7 +141,7 @@ def update_camera():
         if len(eye_rects) == 0:
             eyes_are_open = False
             warn_frame += 1
-            print("Eyes are now closed!")
+            # print("Eyes are now closed!")
             if warn_frame > 5:
                 warn_frame = 5
             if not eyes_closed_warning:
@@ -152,7 +150,7 @@ def update_camera():
         else:
             eyes_are_open = True
             warn_frame -= 1
-            print("Eyes are now open!")
+            # print("Eyes are now open!")
             if warn_frame < 0:
                 warn_frame = 0
             if eyes_closed_warning:
@@ -174,7 +172,7 @@ def update_small_canvas(event):
     small_canvas_height = int(screen_height // 4)
 
     # Keep the small canvas positioned at the bottom-right
-    print("canvas position updated!")
+    # print("canvas position updated!")
     small_canvas.place(x=screen_width - small_canvas_width, y=screen_height - small_canvas_height)
 
 # Initialize tkinter and set up window
@@ -224,9 +222,9 @@ def keyboard_controls(event):
             global cap
             global current_frame
             current_frame = 0
-            cap = cv2.VideoCapture('./educational_materials/1.mp4')
+            cap = cv2.VideoCapture('./educational_materials/2.mp4')
             # Start the audio thread
-            audio_thread = Thread(target=audio, args=('./educational_materials/1.mp4',), daemon=True)
+            audio_thread = Thread(target=audio, args=('./educational_materials/2.wav',), daemon=True)
             audio_thread.start()
 
 
