@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import simpleaudio as sa
 from threading import Thread
 
+# Global variables
 start_program = False
 face_cascPath = "./pretrained/face_detector.xml"
 eye_cascPath = "./pretrained/eye_detector.xml"
@@ -29,9 +30,9 @@ social_credit_score = 0
 early_ret_false_positive_buffer = True
 video_number = 2
 
-# Open video file and camera
-cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
-camera = cv2.VideoCapture(0)  # 0 = default webcam
+# Initialize video and camera streams
+cap = cv2.VideoCapture('./downloads/start.jpg')
+camera = cv2.VideoCapture(0)
 
 def audio(filepath):
     # Load the audio file once
