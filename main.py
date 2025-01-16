@@ -35,12 +35,12 @@ def audio(filepath):
     global eyes_closed_warning
     while True:
         if eyes_closed_warning:
-            print("Paused!")
+            # print("Paused!")
             play_obj.pause()
             is_playing = False
         else:
             if not is_playing:
-                print("Resumed!")
+                # print("Resumed!")
                 play_obj.resume()
                 is_playing = True
 
@@ -49,8 +49,6 @@ def audio(filepath):
 
 # Function to update the main video feed
 def update_video():
-
-
     global eyes_closed_warning
     global previous_frame
     global current_frame
@@ -73,8 +71,6 @@ def update_video():
 
             cv2.putText(frame, f'Current frame: {int(current_frame)}', (10, 30), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
 
-            global eyes_are_open
-
             global warn_frame
             cv2.putText(frame, f'Warn frame: {int(warn_frame)}', (10, 60), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
             cv2.putText(frame, f'Eyes open in the moment? {str(eyes_are_open)}', (10, 90), font, 1, (0, 255, 0), 2, cv2.LINE_AA)
@@ -82,7 +78,7 @@ def update_video():
             if eyes_closed_warning:
                 cv2.putText(frame, "EYES ARE CLOSED!!!", (350, 30), cv2.FONT_HERSHEY_SIMPLEX, 1,
                             (255, 0, 0), 3)
-            print("Eyes warn frame = " + str(warn_frame))
+            # print("Eyes warn frame = " + str(warn_frame))
         # Render final frame
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         video_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
@@ -162,7 +158,7 @@ def update_camera():
         frame_img = ImageTk.PhotoImage(Image.fromarray(frame))
         small_canvas.create_image(0, 0, anchor=tk.NW, image=frame_img)
         small_canvas.image = frame_img
-    root.after(100, update_camera)
+    root.after(20, update_camera)
 
 # Function to update the small canvas size and position
 def update_small_canvas(event):
@@ -202,9 +198,8 @@ root.bind("<Configure>", update_small_canvas)
 
 # Open video file and camera
 cap = cv2.VideoCapture('./downloads/start.jpg')  # Replace with your video path
-camera = cv2.VideoCapture(0)  # 0 = default webcam
-# video_path = "downloads/mieciu.mp4"
-# camera = cv2.VideoCapture(video_path)
+# camera = cv2.VideoCapture(0)  # 0 = default webcam
+camera = cv2.VideoCapture("downloads/mieciu.mp4")
 
 # Start the update loops
 update_video()
@@ -240,23 +235,3 @@ cap.release()
 camera.release()
 cv2.destroyAllWindows()
 
-
-#
-# video_path = "samples/blinking.mp4"
-# cap = cv2.VideoCapture(video_path)
-# # cap = cv2.VideoCapture(0)
-#
-#
-# while True:
-#     _, frame = cap.read()
-#
-#
-#     cv2.imshow("Detection stream ", frame)
-#     time.sleep(0.03)
-#     # Closed when q is pressed
-#     if cv2.waitKey(1) & 0xFF == ord('q'):
-#         break
-#
-# cap.release()
-# cv2.destroyAllWindows()
-#
